@@ -1,0 +1,27 @@
+name: Build SilentClean
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup MSVC (Visual Studio Compiler)
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Compile SilentClean
+      run: |
+        cl.exe /O2 /std:c++17 main.cpp /Fe:SilentClean.exe /EHsc /link user32.lib advapi32.lib shell32.lib
+
+    - name: Upload EXE as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SilentClean-Binary
+        path: SilentClean.exe

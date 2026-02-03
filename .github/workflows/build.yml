@@ -13,8 +13,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup MSVC (Visual Studio Compiler)
-      uses: microsoft/setup-msbuild@v2
+    - name: Setup MSVC Developer Command Prompt
+      # This action sets up the environment so cl.exe is recognized
+      uses: ilammy/msvc-dev-cmd@v1
 
     - name: Compile SilentClean
       run: |

@@ -5,25 +5,34 @@
 
 namespace fs = std::filesystem;
 
-// --- Memory Cleaning Logic (Empty Standby List) ---
+// --- Manual Definitions for Native API ---
+// These are required because they are not in standard windows.h
+typedef enum _SYSTEM_MEMORY_LIST_COMMAND {
+    MemoryCaptureFilledProcessWorkingSets = 1,
+    MemoryFlushModifiedList = 2,
+    MemoryFlushStandbyList = 3, // Command used to empty standby list
+    MemoryPurgeLowPriorityStandbyList = 4,
+    MemoryPurgeStandbyList = 5
+} SYSTEM_MEMORY_LIST_COMMAND;
+
+typedef LONG (WINAPI *NtSetSystemInformation)(
+    INT SystemInformationClass,
+    PVOID SystemInformation,
+    ULONG SystemInformationLength
+);
+
+// --- Memory Cleaning Logic ---
 void EmptyStandbyList() {
-    // Requires SE_PROF_SINGLE_PROCESS_NAME privilege for some memory operations
-    // but SetProcessWorkingSetSize works for the current process.
-    // For a global standby list flush, we mimic the behavior of memory management tools.
-    
-    // 1. Clear Working Sets
+    // 1. Clear current process working set
     SetProcessWorkingSetSize(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1);
 
-    // 2. Attempt to flush system-wide standby list (requires admin)
-    // This is a simplified version of what EmptyStandbyList.exe does
-    typedef LONG (WINAPI *NtSetSystemInformation)(INT, PVOID, ULONG);
+    // 2. Flush System Standby List
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
     if (ntdll) {
         auto setInfo = (NtSetSystemInformation)GetProcAddress(ntdll, "NtSetSystemInformation");
         if (setInfo) {
-            // SystemMemoryListInformation = 80
-            // Command to flush: 4 (StandbyList)
             SYSTEM_MEMORY_LIST_COMMAND command = MemoryFlushStandbyList;
+            // SystemMemoryListInformation class is 80
             setInfo(80, &command, sizeof(command));
         }
     }
@@ -59,7 +68,7 @@ void CleanRegistry(HKEY hKeyRoot, const std::wstring& subKey) {
 
 // --- Main Entry ---
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-    std::string cmdLine = lpCmdLine;
+    std::string cmdLine = lpCmdLine ? lpCmdLine : "";
 
     // Check for "-et" argument (Empty Standby List Only)
     if (cmdLine.find("-et") != std::string::npos) {
@@ -68,10 +77,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     // Default: Full Cleanup
-    // 1. Memory
     EmptyStandbyList();
 
-    // 2. Files
     wchar_t tempPath[MAX_PATH];
     if (GetTempPathW(MAX_PATH, tempPath)) {
         std::vector<std::wstring> targets = {
@@ -83,7 +90,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         for (const auto& path : targets) CleanDirectory(path);
     }
 
-    // 3. Registry
     CleanRegistry(HKEY_CLASSES_ROOT, L"Local Settings\\Software\\Microsoft\\Windows\\Shell\\MuiCache");
     CleanRegistry(HKEY_CURRENT_USER, L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\MuiCache");
 

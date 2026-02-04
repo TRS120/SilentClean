@@ -1,4 +1,4 @@
-SilentClean is fully invisible Windows Cleaner and supports command-line arguments, it is perfect for automation with Task Scheduler
+SilentClean is fully invisible Windows Cleaner and supports command-line arguments, it is perfect for automation 
 Optimization-Focused: Built to reduce micro-stuttering in games by freeing up cached memory
 
 Cleaning

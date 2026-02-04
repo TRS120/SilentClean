@@ -28,10 +28,6 @@ void EmptyStandbyList() {
         auto setInfo = (NtSetSystemInformation)GetProcAddress(ntdll, "NtSetSystemInformation");
         if (setInfo) {
             SYSTEM_MEMORY_LIST_COMMAND command;
-            command = MemoryFlushWorkingSets;
-            setInfo(80, &command, sizeof(command));
-            command = MemoryFlushModifiedList;
-            setInfo(80, &command, sizeof(command));
             command = MemoryFlushStandbyList;
             setInfo(80, &command, sizeof(command));
             command = MemoryPurgeLowPriorityStandbyList;
@@ -74,7 +70,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             tempPath,
             L"C:\\Windows\\Temp",
             L"C:\\Windows\\Prefetch",
-            L"C:\\ProgramData\\NVIDIA Corporation\\NV_Cache"
         };
         for (const auto& path : targets) {
             CleanDirectory(path);

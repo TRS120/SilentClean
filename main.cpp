@@ -38,14 +38,16 @@ void EmptyStandbyList() {
 
 // --- 2. Safe File Cleaning ---
 void CleanDirectory(const std::wstring& path) {
-    try {
-        if (!fs::exists(path)) return;
-        for (const auto& entry : fs::directory_iterator(path)) {
-            try {
-                fs::remove_all(entry.path());
-            } catch (...) {}
-        }
-    } catch (...) {}
+    std::error_code ec;
+    if (!fs::exists(path, ec)) return;
+
+    auto options = fs::directory_options::skip_permission_denied;
+    for (auto it = fs::directory_iterator(path, options, ec); it != fs::end(it); it.increment(ec)) {
+        if (ec) break;
+        try {
+            fs::remove_all(it->path(), ec);
+        } catch (...) {}
+    }
 }
 
 // --- 3. Registry Cleanup ---
@@ -64,20 +66,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     EmptyStandbyList();
 
-    wchar_t tempPath[MAX_PATH];
-    if (GetTempPathW(MAX_PATH, tempPath)) {
+    // --- Buffer Fix: Dynamic Temp Path ---
+DWORD bufferSize = GetTempPathW(0, NULL);
+if (bufferSize > 0) {
+    std::wstring tempPath(bufferSize, L'\0');
+    DWORD len = GetTempPathW(bufferSize, &tempPath[0]);
+    
+    // Deepseek-er dewa safety check
+    if (len > 0 && len < bufferSize) {
+        tempPath.resize(len); // Exactly tototuku resize hobe jototuku path
+        
         std::vector<std::wstring> targets = {
             tempPath,
             L"C:\\Windows\\Temp",
             L"C:\\Windows\\Prefetch",
         };
+
         for (const auto& path : targets) {
             CleanDirectory(path);
         }
     }
-
+}
     CleanRegistry(HKEY_CLASSES_ROOT, L"Local Settings\\Software\\Microsoft\\Windows\\Shell\\MuiCache");
     CleanRegistry(HKEY_CURRENT_USER, L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\MuiCache");
-
     return 0;
 }

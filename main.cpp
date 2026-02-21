@@ -40,7 +40,6 @@ void EmptyStandbyList() {
 void CleanDirectory(const std::wstring& path) {
     std::error_code ec;
     if (!fs::exists(path, ec)) return;
-
     auto options = fs::directory_options::skip_permission_denied;
     for (auto it = fs::directory_iterator(path, options, ec); it != fs::end(it); it.increment(ec)) {
         if (ec) break;
@@ -58,30 +57,24 @@ void CleanRegistry(HKEY hKeyRoot, const std::wstring& subKey) {
 // --- Main Entry ---
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     std::string cmdLine = lpCmdLine ? lpCmdLine : "";
-
     if (cmdLine.find("-et") != std::string::npos) {
         EmptyStandbyList();
         return 0;
     }
 
     EmptyStandbyList();
-
-    // --- Buffer Fix: Dynamic Temp Path ---
+    
 DWORD bufferSize = GetTempPathW(0, NULL);
 if (bufferSize > 0) {
     std::wstring tempPath(bufferSize, L'\0');
     DWORD len = GetTempPathW(bufferSize, &tempPath[0]);
-    
-    // Deepseek-er dewa safety check
     if (len > 0 && len < bufferSize) {
-        tempPath.resize(len); // Exactly tototuku resize hobe jototuku path
-        
+        tempPath.resize(len);
         std::vector<std::wstring> targets = {
             tempPath,
             L"C:\\Windows\\Temp",
             L"C:\\Windows\\Prefetch",
         };
-
         for (const auto& path : targets) {
             CleanDirectory(path);
         }

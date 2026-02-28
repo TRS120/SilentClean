@@ -1,26 +1,19 @@
 name: Build SilentClean
-
 on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
     - name: Setup MSVC Developer Command Prompt
-      # This action sets up the environment so cl.exe is recognized
       uses: ilammy/msvc-dev-cmd@v1
-
     - name: Compile SilentClean
       run: |
-        cl.exe /O2 /std:c++17 main.cpp /Fe:SilentClean.exe /EHsc /link user32.lib advapi32.lib shell32.lib
-
+        cl.exe /O2 /std:c++17 main.cpp /Fe:SilentClean.exe /EHsc /link /SUBSYSTEM:WINDOWS user32.lib advapi32.lib shell32.lib
     - name: Upload EXE as Artifact
       uses: actions/upload-artifact@v4
       with:
